@@ -1,5 +1,6 @@
 package com.github.ladynev.specification.lib.repository.support;
 
+import com.github.ladynev.specification.lib.JpaSpecificationExecutorWithProjectionImpl;
 import com.github.ladynev.specification.lib.repository.support.test.Document;
 import com.github.ladynev.specification.lib.repository.support.test.DocumentRepository;
 import com.github.ladynev.specification.lib.repository.support.test.DocumentSpecs;

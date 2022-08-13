@@ -1,7 +1,6 @@
 package com.github.ladynev.specification.lib.repository.support.test;
 
-import com.github.ladynev.specification.lib.repository.JpaSpecificationExecutorWithProjection;
-import org.springframework.beans.factory.annotation.Value;
+import com.github.ladynev.specification.lib.JpaSpecificationExecutorWithProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

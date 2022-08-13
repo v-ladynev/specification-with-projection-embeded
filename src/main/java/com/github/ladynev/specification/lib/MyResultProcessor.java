@@ -1,4 +1,4 @@
-package com.github.ladynev.specification.lib.query;
+package com.github.ladynev.specification.lib;
 
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.convert.ConversionService;
@@ -6,7 +6,6 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.projection.ProjectionFactory;
-import org.springframework.data.repository.query.ReturnedType;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 

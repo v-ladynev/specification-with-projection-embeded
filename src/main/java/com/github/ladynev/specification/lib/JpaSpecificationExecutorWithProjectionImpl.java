@@ -1,8 +1,5 @@
-package com.github.ladynev.specification.lib.repository.support;
+package com.github.ladynev.specification.lib;
 
-import com.github.ladynev.specification.lib.query.MyResultProcessor;
-import com.github.ladynev.specification.lib.query.TupleConverter;
-import com.github.ladynev.specification.lib.repository.JpaSpecificationExecutorWithProjection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -19,8 +16,6 @@ import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.data.mapping.PropertyPath;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
-import org.springframework.data.repository.query.ReturnTypeWarpper;
-import org.springframework.data.repository.query.ReturnedType;
 import org.springframework.data.repository.support.PageableExecutionUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -100,7 +95,7 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
 
     @Override
     public <R> Optional<R> findById(ID id, Class<R> projectionType) {
-        final ReturnedType returnedType = ReturnTypeWarpper.of(projectionType, getDomainClass(), projectionFactory);
+        final ReturnedType returnedType = ReturnedType.of(projectionType, getDomainClass(), projectionFactory);
 
         CriteriaBuilder builder = this.entityManager.getCriteriaBuilder();
         CriteriaQuery<Tuple> q = builder.createQuery(Tuple.class);
@@ -131,10 +126,9 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
         }
     }
 
-
     @Override
     public <R> Optional<R> findOne(Specification<T> spec, Class<R> projectionType) {
-        final ReturnedType returnedType = ReturnTypeWarpper.of(projectionType, getDomainClass(), projectionFactory);
+        final ReturnedType returnedType = ReturnedType.of(projectionType, getDomainClass(), projectionFactory);
         final TypedQuery<Tuple> query = getTupleQuery(spec, Sort.unsorted(), returnedType);
         try {
             final MyResultProcessor resultProcessor = new MyResultProcessor(projectionFactory, returnedType);
@@ -162,7 +156,7 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
     }
 
     private <R> Page<R> findAll(Specification<T> spec, Class<R> projectionType, Pageable pageable, Sort sort) {
-        final ReturnedType returnedType = ReturnTypeWarpper.of(projectionType, getDomainClass(), projectionFactory);
+        final ReturnedType returnedType = ReturnedType.of(projectionType, getDomainClass(), projectionFactory);
         final TypedQuery<Tuple> query = getTupleQuery(spec, sort, returnedType);
         final MyResultProcessor resultProcessor = new MyResultProcessor(projectionFactory, returnedType);
         if (pageable.isPaged()) {

@@ -1,4 +1,4 @@
-package com.github.ladynev.specification.lib.repository;
+package com.github.ladynev.specification.lib;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
