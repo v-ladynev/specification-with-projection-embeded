@@ -151,35 +151,37 @@ public class SpecificationExecutorProjectionTest {
 
     @Test
     public void findAllListUnsorted() {
-        Specification<Document> where = Specification.where(DocumentSpecs.descriptionLike("description1%"));
+        Specification<Document> where = Specification.where(DocumentSpecs.descriptionLike("description_x1%"));
 
         List<DocumentRepository.DocumentWithoutChild> all = documentRepository.findAll(
                 where, DocumentRepository.DocumentWithoutChild.class
         );
         Assertions.assertThat(all)
-                .hasSize(3)
+                .hasSize(2)
                 .extracting("description")
-                .containsExactlyInAnyOrder("description10", "description11", "description12");
+                .containsExactlyInAnyOrder("description_x12", "description_x10");
     }
 
     @Test
     public void findAllListSorted() {
-        Specification<Document> where = Specification.where(DocumentSpecs.descriptionLike("description1%"));
+        Specification<Document> where = Specification.where(DocumentSpecs.descriptionLike("description_x1%"));
 
         Sort sortByDescription = Sort.by(Sort.Order.desc("description"));
         List<DocumentRepository.DocumentWithoutChild> all = documentRepository.findAll(
                 where, DocumentRepository.DocumentWithoutChild.class, sortByDescription
         );
         Assertions.assertThat(all)
-                .hasSize(3)
+                .hasSize(2)
                 .extracting("description")
-                .containsExactly("description12", "description11", "description10");
+                .containsExactly("description_x12", "description_x10");
     }
 
     @Test
     public void findSinglePage() {
         Specification<Document> where = Specification.where(DocumentSpecs.idEq(24L));
-        Page<DocumentRepository.OnlyParent> all = documentRepository.findAll(where, DocumentRepository.OnlyParent.class, PageRequest.of(0, 10));
+        Page<DocumentRepository.OnlyParent> all = documentRepository.findAll(
+                where, DocumentRepository.OnlyParent.class, PageRequest.of(0, 10)
+        );
         Assertions.assertThat(all).isNotEmpty();
         Assertions.assertThat(all.getTotalElements()).isEqualTo(1);
         Assertions.assertThat(all.getTotalPages()).isEqualTo(1);
@@ -188,7 +190,9 @@ public class SpecificationExecutorProjectionTest {
     @Test
     public void findAllPage() {
         Specification<Document> where = Specification.where(null);
-        Page<DocumentRepository.OnlyParent> all = documentRepository.findAll(where, DocumentRepository.OnlyParent.class, PageRequest.of(0, 10));
+        Page<DocumentRepository.OnlyParent> all = documentRepository.findAll(
+                where, DocumentRepository.OnlyParent.class, PageRequest.of(0, 10)
+        );
         Assertions.assertThat(all).isNotEmpty();
         Assertions.assertThat(all.getTotalElements()).isEqualTo(24);
         Assertions.assertThat(all.getTotalPages()).isEqualTo(3);
@@ -203,22 +207,63 @@ public class SpecificationExecutorProjectionTest {
 
     @Test
     public void findBydId() {
-        Optional<DocumentRepository.DocumentWithoutParent> one = documentRepository.findById(1L, DocumentRepository.DocumentWithoutParent.class);
+        Optional<DocumentRepository.DocumentWithoutParent> one = documentRepository.findById(
+                1L, DocumentRepository.DocumentWithoutParent.class
+        );
         Assertions.assertThat(one.get().getDocumentType()).isEqualTo("document_type_a");
     }
 
     @Test
     public void findOneWithOpenProjection() {
         Specification<Document> where = Specification.where(DocumentSpecs.idEq(1L));
-        Optional<DocumentRepository.OpenProjection> one = documentRepository.findOne(where, DocumentRepository.OpenProjection.class);
-        Assertions.assertThat(one.get().getDescriptionString()).isEqualTo("descriptiontest");
+        Optional<DocumentRepository.OpenProjection> one = documentRepository.findOne(
+                where, DocumentRepository.OpenProjection.class
+        );
+        Assertions.assertThat(one.get().getDescription()).isEqualTo("descriptiontest");
     }
 
     @Test
     public void findAllWithOpenProjection() {
         Specification<Document> where = Specification.where(DocumentSpecs.idEq(1L));
-        Page<DocumentRepository.OpenProjection> page = documentRepository.findAll(where, DocumentRepository.OpenProjection.class, PageRequest.of(0, 10));
-        Assertions.assertThat(page.getContent().get(0).getDescriptionString()).isEqualTo("descriptiontest");
+        Page<DocumentRepository.OpenProjection> page = documentRepository.findAll(
+                where, DocumentRepository.OpenProjection.class, PageRequest.of(0, 10)
+        );
+        Assertions.assertThat(page.getContent().get(0).getDescription()).isEqualTo("descriptiontest");
+    }
+
+    @Test
+    public void findAllWithThreeColumns() {
+        Specification<Document> where = Specification
+                .where(DocumentSpecs.documentTypeEq("document_type_a"))
+                .and(DocumentSpecs.descriptionLike("description_x%"));
+
+        List<DocumentRepository.ThreeColumns> documents = documentRepository.findAll(
+                where,
+                DocumentRepository.ThreeColumns.class
+        );
+
+        Assertions.assertThat(documents)
+                .hasSize(4)
+                .extracting("description")
+                .containsExactly("description_x5", "description_x7", "description_x9", "description_x12");
+    }
+
+    @Test
+    public void findAllWithThreeColumnsPaginated() {
+        Specification<Document> where = Specification
+                .where(DocumentSpecs.documentTypeEq("document_type_a"))
+                .and(DocumentSpecs.descriptionLike("description_x%"));
+
+        Page<DocumentRepository.ThreeColumns> documents = documentRepository.findAll(
+                where,
+                DocumentRepository.ThreeColumns.class,
+                PageRequest.of(0, 3, Sort.by(Sort.Direction.ASC, "id"))
+        );
+
+        Assertions.assertThat(documents)
+                .hasSize(3)
+                .extracting("description")
+                .containsExactly("description_x5", "description_x7", "description_x9");
     }
 
 }

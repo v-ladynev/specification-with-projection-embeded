@@ -11,9 +11,8 @@ import java.util.List;
  */
 public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSpecificationExecutorWithProjection<Document, Long> {
 
-    List<DocumentWithoutParent> findByParentIsNull();
-
     interface DocumentWithoutParent {
+
         Long getId();
 
         String getDescription();
@@ -23,9 +22,11 @@ public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSp
         String getDocumentCategory();
 
         List<DocumentWithoutParent> getChild();
+
     }
 
     interface DocumentWithoutChild {
+
         Long getId();
 
         String getDescription();
@@ -33,19 +34,35 @@ public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSp
         String getDocumentType();
 
         String getDocumentCategory();
+
     }
 
     interface OnlyId {
+
         Long getId();
+
     }
 
     interface OnlyParent extends OnlyId {
+
         OnlyId getParent();
+
     }
 
     interface OpenProjection extends OnlyId {
-        @Value("#{target.description}")
-        String getDescriptionString();
+
+        String getDescription();
+
+    }
+
+    interface ThreeColumns {
+
+        Long getId();
+
+        String getDescription();
+
+        String getDocumentType();
+
     }
 
 }

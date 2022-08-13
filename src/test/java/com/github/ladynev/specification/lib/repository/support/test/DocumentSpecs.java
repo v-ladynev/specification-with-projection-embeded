@@ -15,4 +15,8 @@ public class DocumentSpecs {
         return (root, query, cb) -> cb.like(root.get("description"), descriptionLike);
     }
 
+    public static Specification<Document> documentTypeEq(String documentType) {
+        return (root, query, cb) -> cb.equal(root.get("documentType"), documentType);
+    }
+
 }

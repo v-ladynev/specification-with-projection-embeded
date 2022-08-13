@@ -1,8 +1,6 @@
 package com.github.ladynev.specification.lib.repository.support;
 
 import com.github.ladynev.specification.lib.query.MyResultProcessor;
-import com.github.ladynev.specification.lib.query.ReturnTypeWarpper;
-import com.github.ladynev.specification.lib.query.ReturnedType;
 import com.github.ladynev.specification.lib.query.TupleConverter;
 import com.github.ladynev.specification.lib.repository.JpaSpecificationExecutorWithProjection;
 import org.slf4j.Logger;
@@ -21,6 +19,8 @@ import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.data.mapping.PropertyPath;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
+import org.springframework.data.repository.query.ReturnTypeWarpper;
+import org.springframework.data.repository.query.ReturnedType;
 import org.springframework.data.repository.support.PageableExecutionUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -201,22 +201,18 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
         if (!returnedType.needsCustomConstruction()) {
             return getQuery(spec, sort);
         }
+
         CriteriaBuilder builder = this.entityManager.getCriteriaBuilder();
         CriteriaQuery<Tuple> query = builder.createQuery(Tuple.class);
         Root<T> root = this.applySpecificationToCriteria(spec, getDomainClass(), query, builder);
 
-        if (returnedType.needsCustomConstruction()) {
-            List<Selection<?>> selections = new ArrayList<>();
-
-            for (String property : returnedType.getInputProperties()) {
-                PropertyPath path = PropertyPath.from(property, returnedType.getReturnedType());
-                selections.add(toExpressionRecursively(root, path, true).alias(property));
-            }
-
-            query.multiselect(selections);
-        } else {
-            throw new IllegalArgumentException("only except projection");
+        List<Selection<?>> selections = new ArrayList<>();
+        for (String property : returnedType.getInputProperties()) {
+            PropertyPath path = PropertyPath.from(property, returnedType.getReturnedType());
+            selections.add(toExpressionRecursively(root, path, true).alias(property));
         }
+        query.multiselect(selections);
+
         if (sort.isSorted()) {
             query.orderBy(QueryUtils.toOrders(sort, root, builder));
         }

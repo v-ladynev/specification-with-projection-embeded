@@ -1,6 +1,7 @@
 package com.github.ladynev.specification.lib.query;
 
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.data.repository.query.ReturnedType;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
