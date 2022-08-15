@@ -39,7 +39,9 @@ public interface JpaSpecificationExecutorWithProjection<T, ID> {
      * @return
      */
     @Deprecated
-    <R> Page<R> findAll(Specification<T> spec, Class<R> projectionType, String namedEntityGraph, EntityGraph.EntityGraphType type, Pageable pageable);
+    <R> Page<R> findAll(Specification<T> spec, Class<R> projectionType,
+                        String namedEntityGraph, EntityGraph.EntityGraphType type,
+                        Pageable pageable);
 
     /**
      * Use Spring Data Annotation instead of manually provide EntityGraph.
@@ -52,5 +54,6 @@ public interface JpaSpecificationExecutorWithProjection<T, ID> {
      * @return
      */
     @Deprecated
-    <R> Page<R> findAll(Specification<T> spec, Class<R> projectionClass, JpaEntityGraph dynamicEntityGraph, Pageable pageable);
+    <R> Page<R> findAll(Specification<T> spec, Class<R> projectionClass,
+                        JpaEntityGraph dynamicEntityGraph, Pageable pageable);
 }

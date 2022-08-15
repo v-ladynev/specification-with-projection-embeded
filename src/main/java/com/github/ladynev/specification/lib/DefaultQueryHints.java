@@ -109,7 +109,7 @@ class DefaultQueryHints implements QueryHints {
         return QueryHints.from(forCounts ? metadata.getQueryHintsForCount() : metadata.getQueryHints(), getFetchGraphs());
     }
 
-    private org.springframework.data.jpa.repository.support.QueryHints getFetchGraphs() {
+    private QueryHints getFetchGraphs() {
         return Optionals
                 .mapIfAllPresent(entityManager, metadata.getEntityGraph(),
                         (em, graph) -> Jpa21Utils.getFetchGraphHint(em, getEntityGraph(graph), information.getJavaType()))

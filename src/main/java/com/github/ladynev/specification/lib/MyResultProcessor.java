@@ -16,13 +16,13 @@ import java.util.List;
 import java.util.Map;
 
 public class MyResultProcessor {
+
     private final ProjectingConverter converter;
-    private final ProjectionFactory factory;
+
     private final ReturnedType type;
 
     public MyResultProcessor(ProjectionFactory factory, ReturnedType type) {
         this.converter = new ProjectingConverter(type, factory).withType(type);
-        this.factory = factory;
         this.type = type;
     }
 
@@ -34,10 +34,11 @@ public class MyResultProcessor {
 
         Assert.notNull(preparingConverter, "Preparing converter must not be null!");
 
-        ChainingConverter converter = new ChainingConverter(type.getReturnedType(), preparingConverter).and(this.converter);
+        ChainingConverter chainingConverter = new ChainingConverter(type.getReturnedType(), preparingConverter)
+                .and(this.converter);
 
         if (source instanceof Slice) {
-            return (T) ((Slice<?>) source).map(converter::convert);
+            return (T) ((Slice<?>) source).map(chainingConverter::convert);
         }
 
         if (source instanceof Collection) {
@@ -46,12 +47,12 @@ public class MyResultProcessor {
             Collection<Object> target = createCollectionFor(collection);
 
             for (Object columns : collection) {
-                target.add(type.isInstance(columns) ? columns : converter.convert(columns));
+                target.add(type.isInstance(columns) ? columns : chainingConverter.convert(columns));
             }
 
             return (T) target;
         }
-        return (T) converter.convert(source);
+        return (T) chainingConverter.convert(source);
     }
 
     private static class ChainingConverter implements Converter<Object, Object> {
@@ -99,7 +100,7 @@ public class MyResultProcessor {
 
         try {
             return CollectionFactory.createCollection(source.getClass(), source.size());
-        } catch (RuntimeException o_O) {
+        } catch (RuntimeException ignored) {
             return CollectionFactory.createApproximateCollection(source, source.size());
         }
     }
@@ -146,18 +147,19 @@ public class MyResultProcessor {
         @Nullable
         @Override
         public Object convert(Object source) {
-
             Class<?> targetType = type.getReturnedType();
 
             if (targetType.isInterface()) {
-                return factory.createProjection(targetType, getProjectionTarget(source));
+                Object projectionTarget = getProjectionTarget(source);
+                if (projectionTarget != null) {
+                    return factory.createProjection(targetType, projectionTarget);
+                }
             }
 
             return conversionService.convert(source, targetType);
         }
 
         private Object getProjectionTarget(Object source) {
-
             if (source != null && source.getClass().isArray()) {
                 source = Arrays.asList((Object[]) source);
             }

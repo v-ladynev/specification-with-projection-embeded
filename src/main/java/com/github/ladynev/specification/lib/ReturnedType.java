@@ -5,7 +5,6 @@ import org.springframework.data.mapping.PreferredConstructor;
 import org.springframework.data.mapping.model.PreferredConstructorDiscoverer;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.projection.ProjectionInformation;
-import org.springframework.data.repository.query.QueryMethod;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -246,7 +245,7 @@ public abstract class ReturnedType {
          */
         @NonNull
         public Class<?> getTypeToRead() {
-            return type;
+            return getReturnedType();
         }
 
         /*

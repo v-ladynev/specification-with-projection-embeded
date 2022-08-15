@@ -1,15 +1,15 @@
 package com.github.ladynev.specification.lib;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.query.JpaEntityGraph;
 import org.springframework.data.jpa.repository.query.QueryUtils;
+import org.springframework.data.jpa.repository.support.CrudMethodMetadata;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.QueryHints;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
@@ -61,17 +61,16 @@ import static javax.persistence.metamodel.Attribute.PersistentAttributeType.MANY
 import static javax.persistence.metamodel.Attribute.PersistentAttributeType.ONE_TO_MANY;
 import static javax.persistence.metamodel.Attribute.PersistentAttributeType.ONE_TO_ONE;
 
-
 /**
  * Created by pramoth on 9/29/2016 AD.
  */
-public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializable> extends SimpleJpaRepository<T, ID> implements JpaSpecificationExecutorWithProjection<T, ID> {
+public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializable>
+        extends SimpleJpaRepository<T, ID> implements JpaSpecificationExecutorWithProjection<T, ID> {
 
-    private static final Logger log = LoggerFactory.getLogger(JpaSpecificationExecutorWithProjectionImpl.class);
     private static final Map<Attribute.PersistentAttributeType, Class<? extends Annotation>> ASSOCIATION_TYPES;
 
     static {
-        Map<Attribute.PersistentAttributeType, Class<? extends Annotation>> persistentAttributeTypes = new HashMap<Attribute.PersistentAttributeType, Class<? extends Annotation>>();
+        Map<Attribute.PersistentAttributeType, Class<? extends Annotation>> persistentAttributeTypes = new HashMap<>();
         persistentAttributeTypes.put(ONE_TO_ONE, OneToOne.class);
         persistentAttributeTypes.put(ONE_TO_MANY, null);
         persistentAttributeTypes.put(MANY_TO_ONE, ManyToOne.class);
@@ -85,9 +84,9 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
 
     private final ProjectionFactory projectionFactory = new SpelAwareProxyProjectionFactory();
 
-    private final JpaEntityInformation entityInformation;
+    private final JpaEntityInformation<T, ID> entityInformation;
 
-    public JpaSpecificationExecutorWithProjectionImpl(JpaEntityInformation entityInformation, EntityManager entityManager) {
+    public JpaSpecificationExecutorWithProjectionImpl(JpaEntityInformation<T, ID> entityInformation, EntityManager entityManager) {
         super(entityInformation, entityManager);
         this.entityManager = entityManager;
         this.entityInformation = entityInformation;
@@ -115,7 +114,7 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
             throw new IllegalArgumentException("only except projection");
         }
 
-        final TypedQuery<Tuple> query = this.applyRepositoryMethodMetadata(this.entityManager.createQuery(q));
+        final TypedQuery<Tuple> query = this.applyRepositoryMethodMetadataSelf(this.entityManager.createQuery(q));
 
         try {
             final MyResultProcessor resultProcessor = new MyResultProcessor(projectionFactory, returnedType);
@@ -151,7 +150,7 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
 
     @Override
     public <R> Page<R> findAll(Specification<T> spec, Class<R> projectionType, Pageable pageable) {
-        Sort sort = pageable.getSort() != null && pageable.getSort().isSorted() ? pageable.getSort() : Sort.unsorted();
+        Sort sort = pageable.getSortOr(Sort.unsorted());
         return findAll(spec, projectionType, pageable, sort);
     }
 
@@ -164,41 +163,45 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
             query.setMaxResults(pageable.getPageSize());
         }
         final List<R> resultList = resultProcessor.processResult(query.getResultList(), new TupleConverter(returnedType));
-        final Page<R> page = PageableExecutionUtils.getPage(resultList, pageable, () -> executeCountQuery(this.getCountQuery(spec, getDomainClass())));
-        return pageable.isUnpaged() ? new PageImpl(resultList) : page;
+        final Page<R> page = PageableExecutionUtils.getPage(
+                resultList, pageable, () -> executeCountQuery(this.getCountQuery(spec, getDomainClass()))
+        );
+        return pageable.isUnpaged() ? new PageImpl<>(resultList) : page;
     }
 
-    static Long executeCountQuery(TypedQuery<Long> query) {
+    private static long executeCountQuery(TypedQuery<Long> query) {
         Assert.notNull(query, "TypedQuery must not be null!");
         List<Long> totals = query.getResultList();
-        Long total = 0L;
+        long total = 0L;
 
         Long element;
-        for (Iterator var3 = totals.iterator(); var3.hasNext(); total = total + (element == null ? 0L : element)) {
-            element = (Long) var3.next();
+        for (Iterator<Long> it = totals.iterator(); it.hasNext(); total = total + (element == null ? 0L : element)) {
+            element = it.next();
         }
 
         return total;
     }
 
     @Override
-    public <R> Page<R> findAll(Specification<T> spec, Class<R> projectionType, String namedEntityGraph, org.springframework.data.jpa.repository.EntityGraph.EntityGraphType type, Pageable pageable) {
+    public <R> Page<R> findAll(Specification<T> spec, Class<R> projectionType,
+                               String namedEntityGraph, EntityGraph.EntityGraphType type, Pageable pageable) {
         return findAll(spec, projectionType, pageable);
     }
 
     @Override
-    public <R> Page<R> findAll(Specification<T> spec, Class<R> projectionType, JpaEntityGraph dynamicEntityGraph, Pageable pageable) {
+    public <R> Page<R> findAll(Specification<T> spec, Class<R> projectionType,
+                               JpaEntityGraph dynamicEntityGraph, Pageable pageable) {
         return findAll(spec, projectionType, pageable);
     }
 
-    protected TypedQuery<Tuple> getTupleQuery(@Nullable Specification spec, Sort sort, ReturnedType returnedType) {
+    protected TypedQuery<Tuple> getTupleQuery(@Nullable Specification<T> spec, Sort sort, ReturnedType returnedType) {
         if (!returnedType.needsCustomConstruction()) {
-            return getQuery(spec, sort);
+            return (TypedQuery<Tuple>) getQuery(spec, sort);
         }
 
         CriteriaBuilder builder = this.entityManager.getCriteriaBuilder();
         CriteriaQuery<Tuple> query = builder.createQuery(Tuple.class);
-        Root<T> root = this.applySpecificationToCriteria(spec, getDomainClass(), query, builder);
+        Root<T> root = applySpecificationToCriteria(spec, getDomainClass(), query, builder);
 
         List<Selection<?>> selections = new ArrayList<>();
         for (String property : returnedType.getInputProperties()) {
@@ -211,7 +214,7 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
             query.orderBy(QueryUtils.toOrders(sort, root, builder));
         }
 
-        return this.applyRepositoryMethodMetadata(this.entityManager.createQuery(query));
+        return this.applyRepositoryMethodMetadataSelf(entityManager.createQuery(query));
     }
 
 
@@ -236,29 +239,28 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
         return root;
     }
 
-    private <S> TypedQuery<S> applyRepositoryMethodMetadata(TypedQuery<S> query) {
-
-        if (getRepositoryMethodMetadata() == null) {
+    private <S> TypedQuery<S> applyRepositoryMethodMetadataSelf(TypedQuery<S> query) {
+        CrudMethodMetadata metadata = getRepositoryMethodMetadata();
+        if (metadata == null) {
             return query;
         }
 
-        LockModeType type = getRepositoryMethodMetadata().getLockModeType();
+        LockModeType type = metadata.getLockModeType();
         TypedQuery<S> toReturn = type == null ? query : query.setLockMode(type);
-        applyQueryHints(toReturn);
+        applyQueryHintsSelf(toReturn);
 
         return toReturn;
     }
 
-    private void applyQueryHints(Query query) {
+    private void applyQueryHintsSelf(Query query) {
         QueryHints queryHints = DefaultQueryHints.of(this.entityInformation, getRepositoryMethodMetadata());
-        if (queryHints == null) {
-            queryHints = QueryHints.NoHints.INSTANCE;
-        }
         queryHints.withFetchGraphs(this.entityManager).forEach(query::setHint);
     }
 
-
     static Expression<Object> toExpressionRecursively(Path<Object> path, PropertyPath property) {
+        if (property == null) {
+            return path;
+        }
 
         Path<Object> result = path.get(property.getSegment());
         return property.hasNext() ? toExpressionRecursively(result, property.next()) : result;
@@ -329,7 +331,7 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
         }
 
         Annotation annotation = AnnotationUtils.getAnnotation((AnnotatedElement) member, associationAnnotation);
-        return annotation == null ? true : (boolean) AnnotationUtils.getValue(annotation, "optional");
+        return annotation == null || (boolean) AnnotationUtils.getValue(annotation, "optional");
     }
 
     private static Join<?, ?> getOrCreateJoin(From<?, ?> from, String attribute) {
